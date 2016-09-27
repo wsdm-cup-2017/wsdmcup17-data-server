@@ -30,10 +30,10 @@ In Eclipse, executing "Run As -> Maven install" creates a JAR file which include
 
 Execution
 --------------------
-For every participant, a separate server instance on a different host/port combination is started. The command line arguments are
-  -r Path to compressed revision file
-  -m Path to meta file
-  -o Path to output file
+For every participant, a separate server instance on a different host/port combination is started. The command line arguments are  
+  -r Path to compressed revision file  
+  -m Path to compressed meta file  
+  -o Path to output directory  
   -p Port the server is listening on
  
 
