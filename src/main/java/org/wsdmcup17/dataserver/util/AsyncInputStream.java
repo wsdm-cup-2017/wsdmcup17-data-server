@@ -1,4 +1,4 @@
-package de.upb.wdqa.wsdmcup17.dataserver.util;
+package org.wsdmcup17.dataserver.util;
 
 import java.io.IOException;
 import java.io.InputStream;

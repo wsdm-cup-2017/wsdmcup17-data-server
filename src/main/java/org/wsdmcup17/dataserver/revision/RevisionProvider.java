@@ -1,4 +1,4 @@
-package de.upb.wdqa.wsdmcup17.dataserver.revision;
+package org.wsdmcup17.dataserver.revision;
 
 import java.io.File;
 import java.io.IOException;
@@ -6,11 +6,10 @@ import java.io.InputStream;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.log4j.Logger;
-
-import de.upb.wdqa.wsdmcup17.dataserver.util.AsyncInputStream;
-import de.upb.wdqa.wsdmcup17.dataserver.util.BinaryItem;
-import de.upb.wdqa.wsdmcup17.dataserver.util.QueueProcessor;
-import de.upb.wdqa.wsdmcup17.dataserver.util.SevenZInputStream;
+import org.wsdmcup17.dataserver.util.AsyncInputStream;
+import org.wsdmcup17.dataserver.util.BinaryItem;
+import org.wsdmcup17.dataserver.util.QueueProcessor;
+import org.wsdmcup17.dataserver.util.SevenZInputStream;
 
 /**
  * Thread reading revisions from a file, parsing them and putting them into a

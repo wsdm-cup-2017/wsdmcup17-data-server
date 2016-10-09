@@ -1,10 +1,10 @@
-package de.upb.wdqa.wsdmcup17.dataserver.revision;
+package org.wsdmcup17.dataserver.revision;
 
 import java.io.InputStream;
 
-import de.upb.wdqa.wsdmcup17.dataserver.util.BinaryItem;
-import de.upb.wdqa.wsdmcup17.dataserver.util.ItemProcessor;
-import de.upb.wdqa.wsdmcup17.dataserver.util.LineParser;
+import org.wsdmcup17.dataserver.util.BinaryItem;
+import org.wsdmcup17.dataserver.util.ItemProcessor;
+import org.wsdmcup17.dataserver.util.LineParser;
 
 /**
  * Parses a Wikimedia XML file and creates a {@link BinaryItem} for every

@@ -1,10 +1,10 @@
-package de.upb.wdqa.wsdmcup17.dataserver.metadata;
+package org.wsdmcup17.dataserver.metadata;
 
 import java.io.InputStream;
 
-import de.upb.wdqa.wsdmcup17.dataserver.util.BinaryItem;
-import de.upb.wdqa.wsdmcup17.dataserver.util.ItemProcessor;
-import de.upb.wdqa.wsdmcup17.dataserver.util.LineParser;
+import org.wsdmcup17.dataserver.util.BinaryItem;
+import org.wsdmcup17.dataserver.util.ItemProcessor;
+import org.wsdmcup17.dataserver.util.LineParser;
 
 /**
  * Parses a CSV file containing Wikidata metadata and creates a

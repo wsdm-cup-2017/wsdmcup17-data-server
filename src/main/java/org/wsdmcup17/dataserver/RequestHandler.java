@@ -1,4 +1,4 @@
-package de.upb.wdqa.wsdmcup17.dataserver;
+package org.wsdmcup17.dataserver;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -18,16 +18,15 @@ import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import de.upb.wdqa.wsdmcup17.dataserver.metadata.MetadataProvider;
-import de.upb.wdqa.wsdmcup17.dataserver.result.Result;
-import de.upb.wdqa.wsdmcup17.dataserver.result.ResultParser;
-import de.upb.wdqa.wsdmcup17.dataserver.result.ResultPrinter;
-import de.upb.wdqa.wsdmcup17.dataserver.result.ResultRecorder;
-import de.upb.wdqa.wsdmcup17.dataserver.revision.RevisionProvider;
-import de.upb.wdqa.wsdmcup17.dataserver.util.BinaryItem;
-import de.upb.wdqa.wsdmcup17.dataserver.util.NonBlockingLineBufferedInputStream;
-import de.upb.wdqa.wsdmcup17.dataserver.util.SynchronizedBoundedBlockingMapQueue;
+import org.wsdmcup17.dataserver.metadata.MetadataProvider;
+import org.wsdmcup17.dataserver.result.Result;
+import org.wsdmcup17.dataserver.result.ResultParser;
+import org.wsdmcup17.dataserver.result.ResultPrinter;
+import org.wsdmcup17.dataserver.result.ResultRecorder;
+import org.wsdmcup17.dataserver.revision.RevisionProvider;
+import org.wsdmcup17.dataserver.util.BinaryItem;
+import org.wsdmcup17.dataserver.util.NonBlockingLineBufferedInputStream;
+import org.wsdmcup17.dataserver.util.SynchronizedBoundedBlockingMapQueue;
 
 public class RequestHandler implements Runnable {
 

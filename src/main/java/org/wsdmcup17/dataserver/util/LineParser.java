@@ -1,4 +1,4 @@
-package de.upb.wdqa.wsdmcup17.dataserver.util;
+package org.wsdmcup17.dataserver.util;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -8,9 +8,8 @@ import java.nio.charset.StandardCharsets;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import de.upb.wdqa.wsdmcup17.dataserver.util.BinaryItem;
-import de.upb.wdqa.wsdmcup17.dataserver.util.ItemProcessor;
+import org.wsdmcup17.dataserver.util.BinaryItem;
+import org.wsdmcup17.dataserver.util.ItemProcessor;
 
 /**
  * Abstract class for parsing lines of a text file one by one.

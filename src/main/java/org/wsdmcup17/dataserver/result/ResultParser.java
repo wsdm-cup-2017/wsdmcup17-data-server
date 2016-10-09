@@ -1,12 +1,11 @@
-package de.upb.wdqa.wsdmcup17.dataserver.result;
+package org.wsdmcup17.dataserver.result;
 
 import java.io.IOException;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-
-import de.upb.wdqa.wsdmcup17.dataserver.util.NonBlockingLineBufferedInputStream;
+import org.wsdmcup17.dataserver.util.NonBlockingLineBufferedInputStream;
 
 /**
  * Parses the scoring results provided in CSV format and converts them to

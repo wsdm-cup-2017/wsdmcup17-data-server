@@ -1,4 +1,4 @@
-package de.upb.wdqa.wsdmcup17.dataserver.metadata;
+package org.wsdmcup17.dataserver.metadata;
 
 import java.io.File;
 import java.io.IOException;
@@ -6,12 +6,11 @@ import java.io.InputStream;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.log4j.Logger;
-
-import de.upb.wdqa.wsdmcup17.dataserver.util.BinaryItem;
-import de.upb.wdqa.wsdmcup17.dataserver.util.FilterProcessor;
-import de.upb.wdqa.wsdmcup17.dataserver.util.ItemProcessor;
-import de.upb.wdqa.wsdmcup17.dataserver.util.QueueProcessor;
-import de.upb.wdqa.wsdmcup17.dataserver.util.SevenZInputStream;
+import org.wsdmcup17.dataserver.util.BinaryItem;
+import org.wsdmcup17.dataserver.util.FilterProcessor;
+import org.wsdmcup17.dataserver.util.ItemProcessor;
+import org.wsdmcup17.dataserver.util.QueueProcessor;
+import org.wsdmcup17.dataserver.util.SevenZInputStream;
 
 /**
  * Thread reading meta data from a file, parsing the data and putting it into a

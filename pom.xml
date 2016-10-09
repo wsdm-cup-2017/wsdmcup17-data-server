@@ -76,7 +76,7 @@
 					</descriptorRefs>
 					<archive>
 						<manifest>
-							<mainClass>de.upb.wdqa.wsdmcup17.dataserver.Server</mainClass>
+							<mainClass>org.wsdmcup17.dataserver.Server</mainClass>
 						</manifest>
 						<manifestEntries>
 							<Build-Time>${maven.build.timestamp}</Build-Time>

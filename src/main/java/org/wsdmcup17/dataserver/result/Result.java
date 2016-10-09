@@ -1,4 +1,4 @@
-package de.upb.wdqa.wsdmcup17.dataserver.result;
+package org.wsdmcup17.dataserver.result;
 
 /**
  * The vandalism score for a given revision id.

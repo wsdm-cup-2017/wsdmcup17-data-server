@@ -1,4 +1,4 @@
-package de.upb.wdqa.wsdmcup17.dataserver.result;
+package org.wsdmcup17.dataserver.result;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -6,8 +6,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import de.upb.wdqa.wsdmcup17.dataserver.util.SynchronizedBoundedBlockingMapQueue;
+import org.wsdmcup17.dataserver.util.SynchronizedBoundedBlockingMapQueue;
 
 /**
  * Thread parsing and validating scoring results.

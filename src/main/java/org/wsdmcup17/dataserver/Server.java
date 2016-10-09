@@ -1,4 +1,4 @@
-package de.upb.wdqa.wsdmcup17.dataserver;
+package org.wsdmcup17.dataserver;
 
 import java.io.File;
 import java.net.InetAddress;
