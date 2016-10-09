@@ -58,8 +58,6 @@ public class RequestHandler implements Runnable {
 
 	private Configuration config;
 	
-	private boolean checkAccessTokenAgainstTira;
-	
 	private BlockingQueue<BinaryItem>
 		revisionQueue = new ArrayBlockingQueue<>(REVISIONS_TO_BUFFER),
 		metadataQueue = new ArrayBlockingQueue<>(REVISIONS_TO_BUFFER);
@@ -72,11 +70,9 @@ public class RequestHandler implements Runnable {
 	
 	private Socket clientSocket;
 	
-	public RequestHandler(Configuration config, Socket clientSocket,
-			boolean checkAccessTokenAgainstTira) {
+	public RequestHandler(Configuration config, Socket clientSocket) {
 		this.config = config;
 		this.clientSocket = clientSocket;
-		this.checkAccessTokenAgainstTira = checkAccessTokenAgainstTira;
 	}
 	
 	@Override
@@ -134,8 +130,8 @@ public class RequestHandler implements Runnable {
 	}
 
 	private boolean tiraRunInProgress(String accessToken) {
-		if (!checkAccessTokenAgainstTira) return true;
-		// TODO Auto-generated method stub
+		if (!config.getCheckAccessTokenAgainstTira()) return true;
+		// TODO Integrate check against TIRA.
 		return false;
 	}
 

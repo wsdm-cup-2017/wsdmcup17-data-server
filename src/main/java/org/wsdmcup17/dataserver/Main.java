@@ -1,6 +1,9 @@
 package org.wsdmcup17.dataserver;
 
+import java.io.File;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Enumeration;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -9,6 +12,12 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.log4j.Appender;
+import org.apache.log4j.AsyncAppender;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.PatternLayout;
 
 public class Main {
 	
@@ -25,7 +34,10 @@ public class Main {
 		OPT_OUTPUT_PATH_DESC = "Output path",
 		OPT_PORT = "p",
 		OPT_PORT_LONG = "port",
-		OPT_PORT_DESC = "Port";
+		OPT_PORT_DESC = "Port",
+		LOG_PATTERN = "[%d{yyyy-MM-dd HH:mm:ss}] [%-5p] [%t] [%c{1}] %m%n",
+		UTF_8 = "UTF-8",
+		EXT_LOG = ".log";
 
 	public static void main(String[] args) throws UnknownHostException {
 		CommandLine cmd = parseArgs(args);
@@ -33,10 +45,17 @@ public class Main {
 			cmd.getOptionValue(OPT_REVISION_FILE),
 			cmd.getOptionValue(OPT_METADATA_FILE),
 			cmd.getOptionValue(OPT_OUTPUT_PATH),
-			Integer.parseInt(cmd.getOptionValue(OPT_PORT))
+			Integer.parseInt(cmd.getOptionValue(OPT_PORT)),
+			false
 		);
-		Server server = new Server(config, false);
-		server.init();
+		initLogger(getLogFile(config));
+		try {
+			Server server = new Server(config);
+			server.start();
+		}
+		finally {
+			closeLogger();
+		}
 	}
 	
 	private static CommandLine parseArgs(String[] args){
@@ -73,5 +92,54 @@ public class Main {
 			System.exit(1);
 		}
 		return cmd;
+	}
+	
+	public static void initLogger(File file){
+		org.apache.log4j.Logger logger =
+				org.apache.log4j.Logger.getRootLogger();
+		
+		ConsoleAppender consoleAppender = new ConsoleAppender();
+		consoleAppender.setEncoding(UTF_8);
+		consoleAppender.setLayout(new PatternLayout(LOG_PATTERN));
+		consoleAppender.setThreshold(Level.ALL);
+		consoleAppender.activateOptions();		
+		AsyncAppender asyncConsoleAppender = new AsyncAppender();
+		asyncConsoleAppender.addAppender(consoleAppender);
+		asyncConsoleAppender.setBufferSize(1024);
+		asyncConsoleAppender.activateOptions();
+		logger.addAppender(asyncConsoleAppender);
+		
+		FileAppender fileAppender = new FileAppender();
+		fileAppender.setEncoding(UTF_8);
+		fileAppender.setFile(file.getAbsolutePath());
+		fileAppender.setLayout(new PatternLayout(LOG_PATTERN));
+		fileAppender.setThreshold(Level.ALL);
+		fileAppender.setAppend(false);
+		fileAppender.activateOptions();		
+		AsyncAppender asyncFileAppender = new AsyncAppender();
+		asyncFileAppender.addAppender(fileAppender);
+		asyncFileAppender.setBufferSize(1024);
+		asyncFileAppender.activateOptions();
+		logger.addAppender(asyncFileAppender);
+	}
+	
+	private static void closeLogger() {
+		org.apache.log4j.LogManager.shutdown();	
+		Enumeration<?> e =
+				org.apache.log4j.Logger.getRootLogger().getAllAppenders();
+		while (e.hasMoreElements()) {
+			Appender appender = (Appender)e.nextElement();
+			appender.close();
+		}
+	}
+	
+	private static File getLogFile(Configuration config)
+	throws UnknownHostException {
+		int port = config.getPort();
+		String hostname = InetAddress.getLocalHost().getHostName();
+		File outputPath = config.getOutputPath();
+		String filename = hostname + "_" + port + EXT_LOG;
+		File logFile = new File(outputPath, filename);
+		return logFile;
 	}
 }

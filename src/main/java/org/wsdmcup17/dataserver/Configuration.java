@@ -8,13 +8,15 @@ public class Configuration {
 	private File metadataFile;
 	private File outputPath;
 	private int port;
+	private boolean checkAccessTokenAgainstTira;
 	
 	public Configuration(String revisionFileName, String metadataFileName,
-			String outputPath, int port) {
+			String outputPath, int port, boolean checkAccessTokenAgainstTira) {
 		this.revisionFile = new File(revisionFileName);
 		this.metadataFile = new File(metadataFileName);
 		this.outputPath = new File(outputPath);
 		this.port = port;
+		this.checkAccessTokenAgainstTira = checkAccessTokenAgainstTira;
 	}
 	
 	public File getRevisionFile() {
@@ -31,5 +33,9 @@ public class Configuration {
 
 	public int getPort() {
 		return port;
+	}
+	
+	public boolean getCheckAccessTokenAgainstTira() {
+		return checkAccessTokenAgainstTira;
 	}
 }
