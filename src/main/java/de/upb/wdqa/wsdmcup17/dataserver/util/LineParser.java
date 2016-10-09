@@ -3,6 +3,7 @@ package de.upb.wdqa.wsdmcup17.dataserver.util;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 
 import org.slf4j.Logger;
@@ -13,16 +14,19 @@ import de.upb.wdqa.wsdmcup17.dataserver.util.ItemProcessor;
 
 /**
  * Abstract class for parsing lines of a text file one by one.
- * 
+ *
  * A concrete subclass has to implement the {@link #consumeLine(String)} method
  * and call the the {@link #processCurItem()} method whenever the processing of
  * an item has finished (possibly after having consumed several lines}.
  */
 public abstract class LineParser {
-	final static Logger logger = LoggerFactory.getLogger(LineParser.class);
 
-	// used for writing (e.g., RFC4180 demands the line ending \r\n)
-	final static String LINE_BREAK = "\r\n";
+	private static final Logger LOG = LoggerFactory.getLogger(LineParser.class);
+
+	private static final String
+		LOG_MSG_PROCESSING_TAIL_OF_FILE = "processing tail of file...",
+		LINE_BREAK = "\r\n", // RFC4180 demands the line ending \r\n.
+		UTF_8 = "UTF-8";
 
 	private StringBuilder curItem = new StringBuilder();
 	private ItemProcessor processor;
@@ -30,43 +34,45 @@ public abstract class LineParser {
 
 	private volatile boolean isStopping;
 
-	protected long curRevisionId; // must be set by subclass
+	protected long curRevisionId; // Must be set by subclass.
 
 	protected LineParser(ItemProcessor processor, InputStream inputStream) {
 		this.processor = processor;
 		this.inputStream = inputStream;
 	}
 
-	protected abstract void consumeLine(String line);
-
 	public void consumeFile() {
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));) {
+		try (
+			Reader reader = new InputStreamReader(inputStream, UTF_8);
+			BufferedReader bufferedReader = new BufferedReader(reader);
+		) {
 			String line;
-
-			while ((line = reader.readLine()) != null && !isStopping) {
+			while ((line = bufferedReader.readLine()) != null &&
+					!isStopping && !Thread.currentThread().isInterrupted()) {
 				appendLineToCurItem(line);
 				consumeLine(line);
 			}
-
-			if (!isStopping) {
-				logger.debug("processing tail of file...");
-				BinaryItem item = new BinaryItem(Long.MAX_VALUE, stringToBytes(curItem.toString()));
+			if (!isStopping && !Thread.currentThread().isInterrupted()) {
+				LOG.debug(LOG_MSG_PROCESSING_TAIL_OF_FILE);
+				byte[] bytes = stringToBytes(curItem.toString());
+				BinaryItem item = new BinaryItem(Long.MAX_VALUE, bytes);
 				processor.processItem(item);
 			}
-
-		} catch (Throwable e) {
-			logger.error("", e);
+		}
+		catch (Throwable e) {
+			LOG.error("", e);
 		}
 	}
+	
+	protected abstract void consumeLine(String line);
 
 	/**
-	 * Must be called by subclass a the end of an item.
+	 * Must be called by subclass at the end of an item.
 	 */
 	protected void processCurItem() {
-		BinaryItem item = new BinaryItem(curRevisionId, stringToBytes(curItem.toString()));
-
+		byte[] bytes = stringToBytes(curItem.toString());
+		BinaryItem item = new BinaryItem(curRevisionId, bytes);
 		processor.processItem(item);
-
 		resetBuffers();
 	}
 

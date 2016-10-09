@@ -1,13 +1,14 @@
 package de.upb.wdqa.wsdmcup17.dataserver.result;
 
-/** 
+/**
  * The vandalism score for a given revision id.
  */
-public class ScoringResult {
-	long revisionId;	
-	Float score;
+public class Result {
 	
-	public ScoringResult(long revisionId, Float score) {
+	private long revisionId;	
+	private Float score;
+	
+	public Result(long revisionId, Float score) {
 		this.revisionId = revisionId;
 		this.score = score;
 	}

@@ -5,21 +5,19 @@ import java.io.IOException;
 import org.apache.commons.csv.CSVPrinter;
 
 /**
- * Writes a {@link ScoringResult} to a CSV file.
- *
+ * Writes a {@link Result} to a CSV file.
  */
-public class ScoringResultPrinter {
+public class ResultPrinter {
 	
 	CSVPrinter csvPrinter;
 	
-	public ScoringResultPrinter(CSVPrinter csvPrinter) {
+	public ResultPrinter(CSVPrinter csvPrinter) {
 		this.csvPrinter = csvPrinter;
 	}
 
-	public void printResult(ScoringResult scoringResult) throws IOException {
+	public void printResult(Result scoringResult) throws IOException {
 		csvPrinter.print(scoringResult.getRevisionId());
 		csvPrinter.print(scoringResult.getScore());
 		csvPrinter.println();		
 	}
-
 }

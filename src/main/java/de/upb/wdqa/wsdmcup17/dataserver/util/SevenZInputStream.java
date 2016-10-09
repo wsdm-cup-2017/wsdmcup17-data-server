@@ -7,13 +7,17 @@ import java.io.InputStream;
 import org.apache.commons.compress.archivers.sevenz.SevenZFile;
 
 /**
- * A <code>SevenZInputStream</code> obtains input bytes from a compressed 7z file in a file system. 
+ * A <code>SevenZInputStream</code> obtains input bytes from a compressed 7z
+ * file in a file system.
  */
 public class SevenZInputStream extends InputStream{
 	
-	SevenZFile sevenZFile;
+	private static final String
+		ERROR_MSG_MULTIPLE_7Z_STREAMS = "Multiple 7z streams.";
 	
-	public SevenZInputStream(File file) throws IOException{
+	private SevenZFile sevenZFile;
+	
+	public SevenZInputStream(File file) throws IOException {
 		sevenZFile = new SevenZFile(file);
 		sevenZFile.getNextEntry();
 	}
@@ -38,11 +42,10 @@ public class SevenZInputStream extends InputStream{
 
 	@Override
 	public void close() throws IOException {
-		if (sevenZFile.getNextEntry() != null){
+		if (sevenZFile.getNextEntry() != null) {
 			sevenZFile.close();
-			throw new IOException("7z file contains more than one stream!");
+			throw new IOException(ERROR_MSG_MULTIPLE_7Z_STREAMS);
 		}
-		
 		sevenZFile.close();
 	}
 }

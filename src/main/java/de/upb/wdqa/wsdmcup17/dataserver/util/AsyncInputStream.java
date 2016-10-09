@@ -11,29 +11,30 @@ import org.slf4j.LoggerFactory;
 
 /**
  * An input stream that splits the processing of the stream into two threads.
- *
  */
 public class AsyncInputStream extends PipedInputStream {
 	
-	static final Logger logger = LoggerFactory.getLogger(AsyncInputStream.class);
+	private static final Logger
+		LOG = LoggerFactory.getLogger(AsyncInputStream.class);
 	
-	Thread thread;
+	private Thread thread;
 	
-	public AsyncInputStream(final InputStream inputStream, String threadName, int bufferSize) throws IOException{		
+	public AsyncInputStream(
+		final InputStream inputStream, String threadName, int bufferSize
+	) throws IOException {		
 		super(bufferSize);
 		final PipedOutputStream pipedOutputStream = new PipedOutputStream();
 		this.connect(pipedOutputStream);
-		
-		thread = new Thread(threadName){
+		thread = new Thread(threadName) {
 			@Override
-			public void run(){
+			public void run() {
 				try {					
 					IOUtils.copy(inputStream, pipedOutputStream);
-					
 					inputStream.close();
 					pipedOutputStream.close();					
-				} catch (Throwable e) {
-					logger.error("", e);
+				}
+				catch (Throwable e) {
+					LOG.error("", e);
 				}
 			}
 		};
@@ -43,11 +44,11 @@ public class AsyncInputStream extends PipedInputStream {
 	@Override
 	public void close() throws IOException {
 		super.close();
-		
 		try {
 			thread.join();
-		} catch (InterruptedException e) {
-			logger.error("", e);
+		}
+		catch (InterruptedException e) {
+			LOG.error("", e);
 		}
 	}
 }

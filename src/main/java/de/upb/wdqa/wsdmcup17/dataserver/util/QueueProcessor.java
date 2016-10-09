@@ -9,9 +9,12 @@ import org.apache.log4j.Logger;
  */
 public class QueueProcessor implements ItemProcessor {
 	
-	Logger logger = Logger.getLogger(QueueProcessor.class);
+	private static final Logger LOG = Logger.getLogger(QueueProcessor.class);
 	
-	BlockingQueue<BinaryItem> queue;
+	private static final String
+		LOG_MSG_THREAD_INTERRUPTED = "Thread interrupted";
+	
+	private BlockingQueue<BinaryItem> queue;
 
 	public QueueProcessor(BlockingQueue<BinaryItem> queue) {
 		this.queue = queue;
@@ -23,10 +26,12 @@ public class QueueProcessor implements ItemProcessor {
 			queue.put(item);
 		}
 		catch (InterruptedException e){
-			logger.debug("Thread was interrupted");
+			// Reset the interrupt flag.
+			Thread.currentThread().interrupt();
+			LOG.debug(LOG_MSG_THREAD_INTERRUPTED);
 		}
 		catch(Throwable e){
-			logger.error("", e);
+			LOG.error("", e);
 		}
 	}
 }

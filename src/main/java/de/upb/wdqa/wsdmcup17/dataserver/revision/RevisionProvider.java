@@ -13,30 +13,35 @@ import de.upb.wdqa.wsdmcup17.dataserver.util.QueueProcessor;
 import de.upb.wdqa.wsdmcup17.dataserver.util.SevenZInputStream;
 
 /**
- * Thread reading revisions from a file, parsing them and putting them into a queue.
- *
+ * Thread reading revisions from a file, parsing them and putting them into a
+ * queue.
  */
-public class RevisionProvider implements Runnable{
+public class RevisionProvider implements Runnable {
+
+	private static final String REVISION_DECOMPRESSOR = "Revision Decompressor";
+	private static final int BUFFER_SIZE = 512 * 1024 * 1024;
+
+	private static final Logger LOG = Logger.getLogger(RevisionProvider.class);
 	
-	Logger logger = Logger.getLogger(RevisionProvider.class);
-	
-	RevisionParser parser;
+	private BlockingQueue<BinaryItem> queue;
+	private File file;
+	private RevisionParser parser;
 	
 	public RevisionProvider(BlockingQueue<BinaryItem> queue, File file){
-		
-		InputStream inputStream;
-		try {
-			inputStream = new SevenZInputStream(file);
-			inputStream = new AsyncInputStream(inputStream, "Revision Decompressor", 512 * 1024 * 1024);
-
-			parser = new RevisionParser(new QueueProcessor(queue), inputStream);
-		} catch (IOException e) {
-			logger.error("", e);
-		}
+		this.queue = queue;
+		this.file = file;
 	}	
 
 	public void run() {
-		parser.consumeFile();		
+		try (
+			InputStream	sevenZInput = new SevenZInputStream(file);
+			InputStream asyncInput = new AsyncInputStream(
+				sevenZInput, REVISION_DECOMPRESSOR, BUFFER_SIZE);
+		){
+			parser = new RevisionParser(new QueueProcessor(queue), asyncInput);
+			parser.consumeFile();
+		} catch (IOException e) {
+			LOG.error("", e);
+		}
 	}
-	
 }
