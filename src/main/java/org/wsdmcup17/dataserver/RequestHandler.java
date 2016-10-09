@@ -3,6 +3,7 @@ package org.wsdmcup17.dataserver;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -15,6 +16,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
 
 import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,7 +116,7 @@ public class RequestHandler implements Runnable {
 		}
 	}
 
-	private boolean checkTokenValidity(String accessToken) {
+	private boolean checkTokenValidity(String accessToken) throws IOException {
 		if (Pattern.matches(ACCESS_TOKEN_PATTERN, accessToken) &&
 			!getOutputFile(accessToken).exists() &&
 			tiraRunInProgress(accessToken)
@@ -126,9 +128,22 @@ public class RequestHandler implements Runnable {
 		}
 	}
 
-	private boolean tiraRunInProgress(String accessToken) {
+	private boolean tiraRunInProgress(String accessToken) throws IOException {
 		if (!config.getCheckAccessTokenAgainstTira()) return true;
-		// TODO Integrate check against TIRA.
+		File tiraPath = config.getTiraPath();
+		File vmStates = new File(tiraPath, "state/virtual-machines");
+		File[] stateFiles = vmStates.listFiles(new FilenameFilter() {
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.endsWith(".sandboxed");
+			}
+		});
+		for (File stateFile : stateFiles) {
+			String contents = FileUtils.readFileToString(stateFile, UTF_8);
+			if (contents.contains(accessToken)) {
+				return true;
+			}
+		}
 		return false;
 	}
 

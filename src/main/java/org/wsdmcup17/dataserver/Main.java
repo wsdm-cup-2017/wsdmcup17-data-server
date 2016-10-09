@@ -35,6 +35,9 @@ public class Main {
 		OPT_PORT = "p",
 		OPT_PORT_LONG = "port",
 		OPT_PORT_DESC = "Port",
+		OPT_TIRA_PATH = "t",
+		OPT_TIRA_PATH_LONG = "tirapath",
+		OPT_TIRA_PATH_DESC = "TIRA path",
 		LOG_PATTERN = "[%d{yyyy-MM-dd HH:mm:ss}] [%-5p] [%t] [%c{1}] %m%n",
 		UTF_8 = "UTF-8",
 		EXT_LOG = ".log";
@@ -45,6 +48,7 @@ public class Main {
 			cmd.getOptionValue(OPT_REVISION_FILE),
 			cmd.getOptionValue(OPT_METADATA_FILE),
 			cmd.getOptionValue(OPT_OUTPUT_PATH),
+			cmd.getOptionValue(OPT_TIRA_PATH),
 			Integer.parseInt(cmd.getOptionValue(OPT_PORT)),
 			false
 		);
@@ -79,6 +83,11 @@ public class Main {
 		Option port = new Option(OPT_PORT, OPT_PORT_LONG, true, OPT_PORT_DESC);
 		port.setRequired(true);
 		options.addOption(port);
+		
+		Option tiraPath = new Option(OPT_TIRA_PATH, OPT_TIRA_PATH_LONG, true,
+				OPT_TIRA_PATH_DESC);
+		tiraPath.setRequired(false);
+		options.addOption(tiraPath);
 	
 		CommandLineParser parser = new DefaultParser();
 		HelpFormatter formatter = new HelpFormatter();
