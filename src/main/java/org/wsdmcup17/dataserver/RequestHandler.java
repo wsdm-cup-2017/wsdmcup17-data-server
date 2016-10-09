@@ -52,9 +52,6 @@ public class RequestHandler implements Runnable {
 		REVISIONS_TO_BUFFER = 128,
 		STREAM_BUFFER_SIZE = 10000,
 		DELAY = 10000;
-	
-	public static final byte
-		EOT = 4;
 
 	private Configuration config;
 	

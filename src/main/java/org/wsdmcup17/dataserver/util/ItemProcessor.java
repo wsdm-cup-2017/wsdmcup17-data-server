@@ -6,4 +6,3 @@ package org.wsdmcup17.dataserver.util;
 public interface ItemProcessor {
 	void processItem(BinaryItem item);
 }
-

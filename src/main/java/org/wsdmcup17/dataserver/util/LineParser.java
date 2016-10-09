@@ -24,7 +24,7 @@ public abstract class LineParser {
 
 	private static final String
 		LOG_MSG_PROCESSING_TAIL_OF_FILE = "processing tail of file...",
-		LINE_BREAK = "\r\n", // RFC4180 demands the line ending \r\n.
+		CRLF = "\r\n", // RFC4180 demands the line ending \r\n.
 		UTF_8 = "UTF-8";
 
 	private StringBuilder curItem = new StringBuilder();
@@ -77,7 +77,7 @@ public abstract class LineParser {
 
 	private void appendLineToCurItem(String line) {
 		curItem.append(line);
-		curItem.append(LINE_BREAK);
+		curItem.append(CRLF);
 	}
 
 	private void resetBuffers() {
