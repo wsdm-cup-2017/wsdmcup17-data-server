@@ -4,21 +4,36 @@ import java.io.File;
 
 public class Configuration {
 	
+	private static final String
+		ERROR_MSG_INCONSISTENT_CONFIGURATION =
+			"Inconsistent configuration for production: dataset name missing.";
+	
 	private File revisionFile;
 	private File metadataFile;
 	private File outputPath;
-	private File tiraPath;
 	private int port;
-	private boolean checkAccessTokenAgainstTira;
+	private File tiraPath;
+	private boolean isInProductionMode;
+	private String tiraDatasetName;
 	
 	public Configuration(String revisionFileName, String metadataFileName,
-			String outputPath, String tiraPath, int port) {
+			String outputPath, int port, String tiraPath,
+			String tiraDatasetName) {
 		this.revisionFile = new File(revisionFileName);
 		this.metadataFile = new File(metadataFileName);
 		this.outputPath = new File(outputPath);
-		this.tiraPath = tiraPath != null ? new File(tiraPath) : null;
-		this.checkAccessTokenAgainstTira = (tiraPath != null);
 		this.port = port;
+		this.tiraPath = tiraPath != null ? new File(tiraPath) : null;
+		this.tiraDatasetName = tiraDatasetName;
+		
+		if (tiraPath != null) {
+			if (tiraDatasetName != null) {
+				this.isInProductionMode = true;
+			}
+			else {
+				throw new Error(ERROR_MSG_INCONSISTENT_CONFIGURATION);
+			}
+		}
 	}
 	
 	public File getRevisionFile() {
@@ -41,7 +56,11 @@ public class Configuration {
 		return port;
 	}
 	
-	public boolean getCheckAccessTokenAgainstTira() {
-		return checkAccessTokenAgainstTira;
+	public String getTiraDatasetName() {
+		return tiraDatasetName;
+	}
+		
+	public boolean isInProductionMode() {
+		return isInProductionMode;
 	}
 }

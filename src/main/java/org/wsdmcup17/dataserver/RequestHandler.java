@@ -11,6 +11,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
@@ -36,18 +37,23 @@ public class RequestHandler implements Runnable {
 		LOG = LoggerFactory.getLogger(RequestHandler.class);
 	
 	private static final String
-		ACCESS_TOKEN_PATTERN = "^\\d{4}(-\\d\\d){5}$",
+		UUID_PATTERN = "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+		TIRA_VM_STATE_PATH = "state/virtual-machines",
+		TIRA_CLIENT_IP_PREFIX = "141.54",
+		TIRA_RUN_DIR_PATTERN = "data/runs/%s/%s/%s/run.prototext",
 		LOG_MSG_SENDING_XML_DOCUMENT_TAIL = "Sending Tail of XML document",
 		LOG_MSG_SENDING_REVISION_AT_QUEUE_SIZE =
 			"Sending revision %s (queue size %d)",
 		LOG_MSG_CONNECTED_TO = "Connected to %s.",
 		ERROR_MSG_INVALID_TOKEN = "Invalid access token: %s",
+		ERROR_MSG_INVALID_CLIENT = "Invalid client IP: %s",
 		THREAD_NAME_REVISION_PROVIDER = "Revision Provider",
 		THREAD_NAME_METADATA_PROVIDER = "Metadata Provider",
 		THREAD_NAME_RESULT_RECORDER = "Result Recorder",
 		THREAD_NAME_MULTIPLEXER = "Multiplexer",
 		UTF_8 = "UTF-8",
-		EXT_CSV = ".csv";
+		EXT_CSV = ".csv",
+		EXT_SANDBOXED = ".sandboxed";
 	
 	private static final int
 		BACKPRESSURE_WINDOW = 16,
@@ -81,6 +87,7 @@ public class RequestHandler implements Runnable {
 			OutputStream dataStreamPlain = clientSocket.getOutputStream();
 		) {
 			InetAddress clientIP = clientSocket.getInetAddress();
+			checkClientValidity(clientIP);
 			LOG.info(String.format(LOG_MSG_CONNECTED_TO, clientIP));
 			handleRequest(resultStreamPlain, dataStreamPlain);
 		}
@@ -115,11 +122,22 @@ public class RequestHandler implements Runnable {
 			handleRequest(resultStream, dataStreamPlain, outputFile);
 		}
 	}
+	
+	public boolean checkClientValidity(InetAddress clientIP) throws Error {
+		if (!config.isInProductionMode() ||
+			clientIP.getHostAddress().startsWith(TIRA_CLIENT_IP_PREFIX)) {
+			return true;
+		}
+		String ipAddress = clientIP.getHostAddress();
+		String e = String.format(ERROR_MSG_INVALID_CLIENT, ipAddress);
+		throw new Error(e);
+	}
 
 	private boolean checkTokenValidity(String accessToken) throws IOException {
-		if (Pattern.matches(ACCESS_TOKEN_PATTERN, accessToken) &&
+		if (!config.isInProductionMode()) return true;
+		if (Pattern.matches(UUID_PATTERN, accessToken) &&
 			!getOutputFile(accessToken).exists() &&
-			tiraRunInProgress(accessToken)
+			isTiraRunInProgress(accessToken)
 		) {
 			return true;
 		}
@@ -128,18 +146,26 @@ public class RequestHandler implements Runnable {
 		}
 	}
 
-	private boolean tiraRunInProgress(String accessToken) throws IOException {
-		if (!config.getCheckAccessTokenAgainstTira()) return true;
+	private boolean isTiraRunInProgress(String accessToken) throws IOException {
+		if (!config.isInProductionMode()) return true;
 		File tiraPath = config.getTiraPath();
-		File vmStates = new File(tiraPath, "state/virtual-machines");
+		File vmStates = new File(tiraPath, TIRA_VM_STATE_PATH);
 		File[] stateFiles = vmStates.listFiles(new FilenameFilter() {
 			@Override
 			public boolean accept(File dir, String name) {
-				return name.endsWith(".sandboxed");
+				return name.endsWith(EXT_SANDBOXED);
 			}
 		});
+		String datasetName = config.getTiraDatasetName();
 		for (File stateFile : stateFiles) {
-			String contents = FileUtils.readFileToString(stateFile, UTF_8);
+			String filename = stateFile.getName();
+			String username = filename.substring(1, filename.indexOf('-'));
+			List<String> lines = FileUtils.readLines(stateFile, UTF_8);
+			if (lines.isEmpty()) continue;
+			String runId = lines.get(0).split("=")[1].trim();
+			File runPrototext = new File(String.format(TIRA_RUN_DIR_PATTERN,
+					datasetName, username, runId));
+			String contents = FileUtils.readFileToString(runPrototext, UTF_8);
 			if (contents.contains(accessToken)) {
 				return true;
 			}
@@ -215,7 +241,7 @@ public class RequestHandler implements Runnable {
 	throws InterruptedException, IOException {
 		try(
 			// Closing the output stream would result in closing the socket. We
-			// prevent this because we still want to receive data from it.
+			// prevent this because we may still receive data from the client.
 			OutputStream dataStreamShielded =
 					new CloseShieldOutputStream(dataStreamPlain);
 			DataOutputStream dataStream =

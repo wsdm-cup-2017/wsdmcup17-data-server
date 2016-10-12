@@ -38,6 +38,9 @@ public class Main {
 		OPT_TIRA_PATH = "t",
 		OPT_TIRA_PATH_LONG = "tirapath",
 		OPT_TIRA_PATH_DESC = "TIRA path",
+		OPT_TIRA_DATASET_NAME = "d",
+		OPT_TIRA_DATASET_NAME_LONG = "datasetname",
+		OPT_TIRA_DATASET_NAME_DESC = "TIRA dataset name",
 		LOG_PATTERN = "[%d{yyyy-MM-dd HH:mm:ss}] [%-5p] [%t] [%c{1}] %m%n",
 		UTF_8 = "UTF-8",
 		EXT_LOG = ".log";
@@ -48,8 +51,9 @@ public class Main {
 			cmd.getOptionValue(OPT_REVISION_FILE),
 			cmd.getOptionValue(OPT_METADATA_FILE),
 			cmd.getOptionValue(OPT_OUTPUT_PATH),
+			Integer.parseInt(cmd.getOptionValue(OPT_PORT)),
 			cmd.getOptionValue(OPT_TIRA_PATH),
-			Integer.parseInt(cmd.getOptionValue(OPT_PORT))
+			cmd.getOptionValue(OPT_TIRA_DATASET_NAME)
 		);
 		initLogger(getLogFile(config));
 		try {
@@ -87,6 +91,11 @@ public class Main {
 				OPT_TIRA_PATH_DESC);
 		tiraPath.setRequired(false);
 		options.addOption(tiraPath);
+		
+		Option tiraDatasetName = new Option(OPT_TIRA_DATASET_NAME,
+				OPT_TIRA_DATASET_NAME_LONG, true, OPT_TIRA_DATASET_NAME_DESC);
+		tiraDatasetName.setRequired(false);
+		options.addOption(tiraDatasetName);
 	
 		CommandLineParser parser = new DefaultParser();
 		HelpFormatter formatter = new HelpFormatter();
