@@ -260,7 +260,9 @@ public class RequestHandler implements Runnable {
 			long revisionId = revision.getRevisionId();
 			if (revisionId == Long.MAX_VALUE) {
 				LOG.debug(LOG_MSG_SENDING_XML_DOCUMENT_TAIL);
-				sendItem(metadata, dataStream);
+				BinaryItem emptyItem =
+						new BinaryItem(Long.MAX_VALUE, new byte[0]);
+				sendItem(emptyItem, dataStream);
 				sendItem(revision, dataStream);
 				break;
 			}
