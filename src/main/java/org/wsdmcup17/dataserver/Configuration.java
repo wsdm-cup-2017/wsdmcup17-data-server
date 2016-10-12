@@ -12,14 +12,13 @@ public class Configuration {
 	private boolean checkAccessTokenAgainstTira;
 	
 	public Configuration(String revisionFileName, String metadataFileName,
-			String outputPath, String tiraPath, int port,
-			boolean checkAccessTokenAgainstTira) {
+			String outputPath, String tiraPath, int port) {
 		this.revisionFile = new File(revisionFileName);
 		this.metadataFile = new File(metadataFileName);
 		this.outputPath = new File(outputPath);
-		this.tiraPath = new File(tiraPath);
+		this.tiraPath = tiraPath != null ? new File(tiraPath) : null;
+		this.checkAccessTokenAgainstTira = (tiraPath != null);
 		this.port = port;
-		this.checkAccessTokenAgainstTira = checkAccessTokenAgainstTira;
 	}
 	
 	public File getRevisionFile() {

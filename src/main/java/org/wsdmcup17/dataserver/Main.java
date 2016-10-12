@@ -49,8 +49,7 @@ public class Main {
 			cmd.getOptionValue(OPT_METADATA_FILE),
 			cmd.getOptionValue(OPT_OUTPUT_PATH),
 			cmd.getOptionValue(OPT_TIRA_PATH),
-			Integer.parseInt(cmd.getOptionValue(OPT_PORT)),
-			false
+			Integer.parseInt(cmd.getOptionValue(OPT_PORT))
 		);
 		initLogger(getLogFile(config));
 		try {
