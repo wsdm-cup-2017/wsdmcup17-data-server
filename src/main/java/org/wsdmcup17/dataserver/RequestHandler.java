@@ -163,8 +163,8 @@ public class RequestHandler implements Runnable {
 			List<String> lines = FileUtils.readLines(stateFile, UTF_8);
 			if (lines.isEmpty()) continue;
 			String runId = lines.get(0).split("=")[1].trim();
-			File runPrototext = new File(String.format(TIRA_RUN_DIR_PATTERN,
-					datasetName, username, runId));
+			File runPrototext = new File(tiraPath, String.format(
+					TIRA_RUN_DIR_PATTERN, datasetName, username, runId));
 			String contents = FileUtils.readFileToString(runPrototext, UTF_8);
 			if (contents.contains(accessToken)) {
 				return true;
@@ -260,7 +260,9 @@ public class RequestHandler implements Runnable {
 			long revisionId = revision.getRevisionId();
 			if (revisionId == Long.MAX_VALUE) {
 				LOG.debug(LOG_MSG_SENDING_XML_DOCUMENT_TAIL);
-				sendItem(metadata, dataStream);
+				BinaryItem emptyItem =
+						new BinaryItem(Long.MAX_VALUE, new byte[0]);
+				sendItem(emptyItem, dataStream);
 				sendItem(revision, dataStream);
 				break;
 			}
