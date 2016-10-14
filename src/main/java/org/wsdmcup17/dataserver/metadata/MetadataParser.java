@@ -21,12 +21,17 @@ public class MetadataParser extends LineParser {
 
 	@Override
 	protected void consumeLine(String line) {
+		if (line == null){ // end of file
+			return;
+		}
+		
 		if (isFirstLine) {
 			isFirstLine = false;
 		}
 		else {
 			curRevisionId = Long.valueOf(line.substring(0, line.indexOf(',')));
-			processCurItem();
+			endItem();
+			processLastItem();
 		}
 	}
 }

@@ -29,10 +29,17 @@ public class RevisionParser extends LineParser {
 
 	@Override
 	protected void consumeLine(String line) {
+		if (line == null){ // end of file
+			appendToItem();
+			processLastItem();
+			return;
+		}
+		
 		switch (state) {
 		case EXPECT_REVISION:
 			if (line.equals(REVISION_OPENING_TAG)) {
 				state = State.EXPECT_REVISION_ID;
+				processLastItem();
 			}
 			break;
 		case EXPECT_REVISION_ID:
@@ -46,7 +53,7 @@ public class RevisionParser extends LineParser {
 		case EXPECT_REVISION_CLOSING_TAG:
 			if (line.equals(REVISION_CLOSING_TAG)) {
 				state = State.EXPECT_REVISION;
-				processCurItem();
+				endItem();
 			}
 			break;
 		default:

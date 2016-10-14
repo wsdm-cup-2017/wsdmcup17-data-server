@@ -41,7 +41,7 @@ public class RequestHandler implements Runnable {
 		TIRA_VM_STATE_PATH = "state/virtual-machines",
 		TIRA_CLIENT_IP_PREFIX = "141.54",
 		TIRA_RUN_DIR_PATTERN = "data/runs/%s/%s/%s/run.prototext",
-		LOG_MSG_SENDING_XML_DOCUMENT_TAIL = "Sending Tail of XML document",
+		LOG_MSG_END_OF_DOCUMENT = "XML document completely send",
 		LOG_MSG_SENDING_REVISION_AT_QUEUE_SIZE =
 			"Sending revision %s (queue size %d)",
 		LOG_MSG_CONNECTED_TO = "Connected to %s.",
@@ -259,11 +259,7 @@ public class RequestHandler implements Runnable {
 			BinaryItem metadata = metadataQueue.take();
 			long revisionId = revision.getRevisionId();
 			if (revisionId == Long.MAX_VALUE) {
-				LOG.debug(LOG_MSG_SENDING_XML_DOCUMENT_TAIL);
-				BinaryItem emptyItem =
-						new BinaryItem(Long.MAX_VALUE, new byte[0]);
-				sendItem(emptyItem, dataStream);
-				sendItem(revision, dataStream);
+				LOG.debug(LOG_MSG_END_OF_DOCUMENT);
 				break;
 			}
 			else {
