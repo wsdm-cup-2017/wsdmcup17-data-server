@@ -165,6 +165,7 @@ public class RequestHandler implements Runnable {
 			String runId = lines.get(0).split("=")[1].trim();
 			File runPrototext = new File(tiraPath, String.format(
 					TIRA_RUN_DIR_PATTERN, datasetName, username, runId));
+			if (!runPrototext.exists()) continue;
 			String contents = FileUtils.readFileToString(runPrototext, UTF_8);
 			if (contents.contains(accessToken)) {
 				return true;
