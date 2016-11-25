@@ -17,25 +17,33 @@ import org.wsdmcup17.dataserver.util.SevenZInputStream;
  */
 public class RevisionProvider implements Runnable {
 
-	private static final String REVISION_DECOMPRESSOR = "Revision Decompressor";
+	private static final String REVISION_DECOMPRESSOR =
+			"%s: Revision Decompressor";
 	private static final int BUFFER_SIZE = 512 * 1024 * 1024;
 
 	private static final Logger LOG = Logger.getLogger(RevisionProvider.class);
 	
+	private ThreadGroup threadGroup;
 	private BlockingQueue<BinaryItem> queue;
 	private File file;
 	private RevisionParser parser;
 	
-	public RevisionProvider(BlockingQueue<BinaryItem> queue, File file){
+	public RevisionProvider(
+		ThreadGroup threadGroup, BlockingQueue<BinaryItem> queue, File file) {
+		
+		this.threadGroup = threadGroup;
 		this.queue = queue;
 		this.file = file;
-	}	
+	}
 
 	public void run() {
 		try (
 			InputStream	sevenZInput = new SevenZInputStream(file);
 			InputStream asyncInput = new AsyncInputStream(
-				sevenZInput, REVISION_DECOMPRESSOR, BUFFER_SIZE);
+				threadGroup,
+				String.format(REVISION_DECOMPRESSOR, threadGroup.getName()),
+				sevenZInput,
+				BUFFER_SIZE);
 		){
 			parser = new RevisionParser(new QueueProcessor(queue), asyncInput);
 			parser.consumeFile();

@@ -20,12 +20,13 @@ public class AsyncInputStream extends PipedInputStream {
 	private Thread thread;
 	
 	public AsyncInputStream(
-		final InputStream inputStream, String threadName, int bufferSize
+			final ThreadGroup threadGroup, String threadName,
+			InputStream inputStream, int bufferSize
 	) throws IOException {		
 		super(bufferSize);
 		final PipedOutputStream pipedOutputStream = new PipedOutputStream();
 		this.connect(pipedOutputStream);
-		thread = new Thread(threadName) {
+		thread = new Thread(threadGroup, threadName) {
 			@Override
 			public void run() {
 				try {					
@@ -41,6 +42,12 @@ public class AsyncInputStream extends PipedInputStream {
 		thread.start();
 	}
 	
+	public AsyncInputStream(
+		final String threadName, InputStream inputStream, int bufferSize
+	) throws IOException {		
+		this(null, threadName, inputStream, bufferSize);
+	}
+
 	@Override
 	public void close() throws IOException {
 		super.close();

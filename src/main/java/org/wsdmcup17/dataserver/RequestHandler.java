@@ -1,6 +1,5 @@
 package org.wsdmcup17.dataserver;
 
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
@@ -18,7 +17,6 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wsdmcup17.dataserver.metadata.MetadataProvider;
@@ -41,16 +39,13 @@ public class RequestHandler implements Runnable {
 		TIRA_VM_STATE_PATH = "state/virtual-machines",
 		TIRA_CLIENT_IP_PREFIX = "141.54",
 		TIRA_RUN_DIR_PATTERN = "data/runs/%s/%s/%s/run.prototext",
-		LOG_MSG_END_OF_DOCUMENT = "XML document completely send",
-		LOG_MSG_SENDING_REVISION_AT_QUEUE_SIZE =
-			"Sending revision %s (queue size %d)",
 		LOG_MSG_CONNECTED_TO = "Connected to %s.",
 		ERROR_MSG_INVALID_TOKEN = "Invalid access token: %s",
 		ERROR_MSG_INVALID_CLIENT = "Invalid client IP: %s",
-		THREAD_NAME_REVISION_PROVIDER = "Revision Provider",
-		THREAD_NAME_METADATA_PROVIDER = "Metadata Provider",
-		THREAD_NAME_RESULT_RECORDER = "Result Recorder",
-		THREAD_NAME_MULTIPLEXER = "Multiplexer",
+		THREAD_NAME_REVISION_PROVIDER = "%s: Revision Provider",
+		THREAD_NAME_METADATA_PROVIDER = "%s: Metadata Provider",
+		THREAD_NAME_RESULT_RECORDER = "%s: Result Recorder",
+		THREAD_NAME_MULTIPLEXER = "%s: Multiplexer",
 		UTF_8 = "UTF-8",
 		EXT_CSV = ".csv",
 		EXT_SANDBOXED = ".sandboxed";
@@ -58,8 +53,7 @@ public class RequestHandler implements Runnable {
 	private static final int
 		BACKPRESSURE_WINDOW = 16,
 		REVISIONS_TO_BUFFER = 128,
-		STREAM_BUFFER_SIZE = 10000,
-		DELAY = 10000;
+		STREAM_BUFFER_SIZE = 10000;
 
 	private Configuration config;
 	
@@ -71,9 +65,10 @@ public class RequestHandler implements Runnable {
 		mapQueue = new SynchronizedBoundedBlockingMapQueue<>(
 			BACKPRESSURE_WINDOW);
 	
-	private long lastMillis = 0;
+
 	
 	private Socket clientSocket;
+	private String accessToken;
 	
 	public RequestHandler(Configuration config, Socket clientSocket) {
 		this.config = config;
@@ -118,6 +113,9 @@ public class RequestHandler implements Runnable {
 				String e = String.format(ERROR_MSG_INVALID_TOKEN, accessToken);
 				throw new Error(e);
 			}
+			
+			this.accessToken = accessToken;
+			
 			File outputFile = getOutputFile(accessToken);
 			handleRequest(resultStream, dataStreamPlain, outputFile);
 		}
@@ -184,13 +182,17 @@ public class RequestHandler implements Runnable {
 			CSVPrinter csvPrinter =
 					new CSVPrinter(writer, ResultParser.CSV_FORMAT);
 		) {
-			Thread revisionThread = createRevisionProviderThread();
-			Thread metadataThread = createMetadataProviderThread();
+			ThreadGroup threadGroup = new ThreadGroup(accessToken);
+			Thread revisionThread = createRevisionProviderThread(threadGroup);
+			Thread metadataThread = createMetadataProviderThread(threadGroup);
 			Thread resultRecorderThread =
-					createResultRecorderThread(resultStream, csvPrinter);
+					createResultRecorderThread(
+							threadGroup, resultStream, csvPrinter);
 			
-			sendData(dataStreamPlain);
+			Thread multiplexerThread = 
+					createMultiplexerThread(threadGroup, dataStreamPlain);
 			
+			multiplexerThread.join();
 			revisionThread.join();
 			metadataThread.interrupt();
 			metadataThread.join();
@@ -199,16 +201,18 @@ public class RequestHandler implements Runnable {
 		}
 	}
 
-	private Thread createRevisionProviderThread() {
+	private Thread createRevisionProviderThread(ThreadGroup threadGroup) {
 		RevisionProvider revisionProvider =
-				new RevisionProvider(revisionQueue, config.getRevisionFile());
+				new RevisionProvider(
+						threadGroup, revisionQueue, config.getRevisionFile());
 		Thread revisionThread =
-				new Thread(revisionProvider, THREAD_NAME_REVISION_PROVIDER);
+				new Thread(threadGroup, revisionProvider,
+					String.format(THREAD_NAME_REVISION_PROVIDER, accessToken));
 		revisionThread.start();
 		return revisionThread;
 	}
 
-	private Thread createMetadataProviderThread()
+	private Thread createMetadataProviderThread(ThreadGroup threadGroup)
 	throws InterruptedException {
 		BinaryItem firstRevision = null;
 		while (firstRevision == null){
@@ -220,12 +224,14 @@ public class RequestHandler implements Runnable {
 		MetadataProvider metadataProvider =
 				new MetadataProvider(metadataQueue, metadataFile, revisionId);
 		Thread metaThread =
-				new Thread(metadataProvider, THREAD_NAME_METADATA_PROVIDER);
+				new Thread(threadGroup, metadataProvider,
+					String.format(THREAD_NAME_METADATA_PROVIDER, accessToken));
 		metaThread.start();
 		return metaThread;
 	}
 	
 	private Thread createResultRecorderThread(
+		ThreadGroup threadGroup,
 		NonBlockingLineBufferedInputStream resultStream, CSVPrinter csvPrinter
 	) {
 		ResultParser parser = new ResultParser(resultStream);
@@ -233,59 +239,45 @@ public class RequestHandler implements Runnable {
 		ResultRecorder resultReceiver =
 				new ResultRecorder(mapQueue, parser, printer);
 		Thread  resultReceiverThread =
-				new Thread(resultReceiver, THREAD_NAME_RESULT_RECORDER);
+				new Thread(threadGroup, resultReceiver,
+						String.format(THREAD_NAME_RESULT_RECORDER, accessToken));
 		resultReceiverThread.start();
 		return resultReceiverThread;
 	}
-
-	private void sendData(OutputStream dataStreamPlain)
-	throws InterruptedException, IOException {
-		try(
-			// Closing the output stream would result in closing the socket. We
-			// prevent this because we may still receive data from the client.
-			OutputStream dataStreamShielded =
-					new CloseShieldOutputStream(dataStreamPlain);
-			DataOutputStream dataStream =
-					new DataOutputStream(dataStreamShielded);
-		){
-			Thread.currentThread().setName(THREAD_NAME_MULTIPLEXER);
-			sendData(dataStream);
-		}
-	}
 	
-	private void sendData(DataOutputStream dataStream)
-	throws InterruptedException, IOException {
-		while (true) {
-			BinaryItem revision = revisionQueue.take();
-			BinaryItem metadata = metadataQueue.take();
-			long revisionId = revision.getRevisionId();
-			if (revisionId == Long.MAX_VALUE) {
-				LOG.debug(LOG_MSG_END_OF_DOCUMENT);
-				break;
-			}
-			else {
-				if (System.currentTimeMillis() - lastMillis > DELAY) {
-					LOG.debug(String.format(
-						LOG_MSG_SENDING_REVISION_AT_QUEUE_SIZE, revisionId,
-						mapQueue.size()));
-					lastMillis = System.currentTimeMillis();
-				}
-				Result result = new Result(revisionId, null);
-				mapQueue.put(revision.getRevisionId(), result);
-				sendItem(metadata, dataStream);
-				sendItem(revision, dataStream);
-			}
-		}
-	}
-	
-	private void sendItem(BinaryItem item, DataOutputStream dataStream)
-	throws IOException {
-		dataStream.writeInt(item.getBytes().length);
-		dataStream.write(item.getBytes(), 0, item.getBytes().length);
-	}
+	private Thread createMultiplexerThread(
+			ThreadGroup threadGroup, OutputStream dataStreamPlain) {
+		Multiplexer multiplexer = new Multiplexer(
+				dataStreamPlain, revisionQueue, metadataQueue, mapQueue);
+		Thread multiplexerThread = 
+				new Thread(threadGroup, multiplexer,
+						String.format(THREAD_NAME_MULTIPLEXER, accessToken));
+		multiplexerThread.start();
+		return multiplexerThread;
+	}	
 
 	private File getOutputFile(String accessToken) {
 		String filename = accessToken + EXT_CSV;
 		return new File(config.getOutputPath(), filename);
+	}
+	
+	class RequestHandlerThreadGroup extends ThreadGroup{
+
+		public RequestHandlerThreadGroup(String name) {
+			super(name);
+		}
+		
+		@Override
+		public void uncaughtException(Thread t, Throwable e) {
+			LOG.error("" + t.getName(), e);
+			
+			Thread[] threads = new Thread[this.activeGroupCount()];
+			
+			this.enumerate(threads);
+			for (Thread thread: threads){
+				thread.interrupt();
+			}
+		}
+		
 	}
 }
