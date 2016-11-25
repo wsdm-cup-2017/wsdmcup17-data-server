@@ -1,7 +1,6 @@
 package org.wsdmcup17.dataserver.revision;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.BlockingQueue;
 
@@ -47,8 +46,9 @@ public class RevisionProvider implements Runnable {
 		){
 			parser = new RevisionParser(new QueueProcessor(queue), asyncInput);
 			parser.consumeFile();
-		} catch (IOException e) {
+		} catch (Throwable e) {
 			LOG.error("", e);
+			throw new RuntimeException(e);
 		}
 	}
 }

@@ -30,8 +30,5 @@ public class QueueProcessor implements ItemProcessor {
 			Thread.currentThread().interrupt();
 			LOG.debug(LOG_MSG_THREAD_INTERRUPTED);
 		}
-		catch(Throwable e){
-			LOG.error("", e);
-		}
 	}
 }

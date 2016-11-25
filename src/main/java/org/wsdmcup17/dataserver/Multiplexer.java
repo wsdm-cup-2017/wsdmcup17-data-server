@@ -48,9 +48,11 @@ public class Multiplexer implements Runnable {
 		try {
 			sendData(dataStreamPlain);
 		} catch (InterruptedException | IOException e) {
-
-		}		
-	}	
+			Thread.currentThread().interrupt();
+			LOG.error(e);
+			throw new RuntimeException(e);
+		}
+	}
 	
 	private void sendData(OutputStream dataStreamPlain)
 	throws InterruptedException, IOException {
@@ -68,7 +70,7 @@ public class Multiplexer implements Runnable {
 	
 	private void sendData(DataOutputStream dataStream)
 	throws InterruptedException, IOException {
-		while (true) {
+		while (!Thread.currentThread().isInterrupted()) {
 			BinaryItem revision = revisionQueue.take();
 			BinaryItem metadata = metadataQueue.take();
 			long revisionId = revision.getRevisionId();

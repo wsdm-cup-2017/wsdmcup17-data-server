@@ -36,6 +36,7 @@ public class AsyncInputStream extends PipedInputStream {
 				}
 				catch (Throwable e) {
 					LOG.error("", e);
+					throw new RuntimeException(e);
 				}
 			}
 		};
@@ -55,7 +56,9 @@ public class AsyncInputStream extends PipedInputStream {
 			thread.join();
 		}
 		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
 			LOG.error("", e);
+			throw new RuntimeException(e);
 		}
 	}
 }

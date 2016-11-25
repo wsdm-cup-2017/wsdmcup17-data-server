@@ -43,6 +43,7 @@ public class MetadataProvider implements Runnable {
 		}
 		catch (IOException e) {
 			LOG.error("", e);
+			throw new RuntimeException(e);
 		}
 	}
 	

@@ -44,7 +44,7 @@ public abstract class LineParser {
 		this.inputStream = inputStream;
 	}
 
-	public void consumeFile() {
+	public void consumeFile() throws IOException {
 		try (
 			Reader reader = new InputStreamReader(inputStream, UTF_8);
 			BufferedReader bufferedReader = new BufferedReader(reader);
@@ -66,9 +66,6 @@ public abstract class LineParser {
 				endItem();
 				processLastItem();
 			}
-		}
-		catch (Throwable e) {
-			LOG.error("", e);
 		}
 	}
 	
@@ -104,6 +101,7 @@ public abstract class LineParser {
 			resetBuffers();
 		} catch (IOException e) {
 			LOG.error("", e);
+			throw new RuntimeException(e);
 		}
 	}
 

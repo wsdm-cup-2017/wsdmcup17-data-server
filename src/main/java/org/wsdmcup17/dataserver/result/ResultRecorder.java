@@ -42,7 +42,7 @@ public class ResultRecorder implements Runnable {
 	
 	public void run() {
 		try {
-			while (true) {
+			while (!Thread.currentThread().isInterrupted()) {
 				Result parsedResult = resultParser.parseResult();
 				if (parsedResult != null) {
 					consumeResult(parsedResult);
@@ -53,12 +53,13 @@ public class ResultRecorder implements Runnable {
 						throw new IllegalStateException(e);
 					}
 					// The last result has been read and written.	
-					break; 			
+					break;
 				}
 			}
 		}
 		catch (Throwable e) {
 			LOG.error("", e);
+			throw new RuntimeException(e);
 		}
 	}
 
@@ -72,7 +73,7 @@ public class ResultRecorder implements Runnable {
 	}
 
 	private void consumeResult(Result parsedResult)
-	throws InterruptedException {
+	throws InterruptedException, IOException {
 		long revisionId = parsedResult.getRevisionId();
 		Result queueResult = mapQueue.get(revisionId);
 		if (queueResult == null) {
@@ -84,12 +85,8 @@ public class ResultRecorder implements Runnable {
 			throw new IllegalStateException(e);
 		}					
 		queueResult.setScore(parsedResult.getScore());
-		try {
-			writeResults(mapQueue, resultPrinter);
-		}
-		catch (IOException e) {
-			LOG.error("", e);
-		}
+
+		writeResults(mapQueue, resultPrinter);
 	}
 	
 	private void writeResults(

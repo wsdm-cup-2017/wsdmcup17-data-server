@@ -65,8 +65,6 @@ public class RequestHandler implements Runnable {
 		mapQueue = new SynchronizedBoundedBlockingMapQueue<>(
 			BACKPRESSURE_WINDOW);
 	
-
-	
 	private Socket clientSocket;
 	private String accessToken;
 	
@@ -87,7 +85,9 @@ public class RequestHandler implements Runnable {
 			handleRequest(resultStreamPlain, dataStreamPlain);
 		}
 		catch (IOException | InterruptedException e) {
+			Thread.currentThread().interrupt();
 			LOG.error("", e);
+			throw new RuntimeException(e);
 		}
 		finally {
 			try {
@@ -95,6 +95,7 @@ public class RequestHandler implements Runnable {
 			}
 			catch (IOException e) {
 				LOG.error("", e);
+				throw new RuntimeException(e);
 			}
 		}
 	}
@@ -182,13 +183,14 @@ public class RequestHandler implements Runnable {
 			CSVPrinter csvPrinter =
 					new CSVPrinter(writer, ResultParser.CSV_FORMAT);
 		) {
-			ThreadGroup threadGroup = new ThreadGroup(accessToken);
+			ThreadGroup threadGroup = 
+					new RequestHandlerThreadGroup(accessToken);
+			
 			Thread revisionThread = createRevisionProviderThread(threadGroup);
 			Thread metadataThread = createMetadataProviderThread(threadGroup);
 			Thread resultRecorderThread =
 					createResultRecorderThread(
-							threadGroup, resultStream, csvPrinter);
-			
+							threadGroup, resultStream, csvPrinter);			
 			Thread multiplexerThread = 
 					createMultiplexerThread(threadGroup, dataStreamPlain);
 			
@@ -269,9 +271,9 @@ public class RequestHandler implements Runnable {
 		
 		@Override
 		public void uncaughtException(Thread t, Throwable e) {
-			LOG.error("" + t.getName(), e);
+			LOG.error("Uncaught Exception in Thread " + t.getName(), e);
 			
-			Thread[] threads = new Thread[this.activeGroupCount()];
+			Thread[] threads = new Thread[this.activeCount()];
 			
 			this.enumerate(threads);
 			for (Thread thread: threads){
