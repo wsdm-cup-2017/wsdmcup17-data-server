@@ -6,7 +6,8 @@ import java.io.OutputStream;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.commons.io.output.CloseShieldOutputStream;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.wsdmcup17.dataserver.result.Result;
 import org.wsdmcup17.dataserver.util.BinaryItem;
 import org.wsdmcup17.dataserver.util.SynchronizedBoundedBlockingMapQueue;
@@ -21,7 +22,7 @@ public class Multiplexer implements Runnable {
 	
 	private SynchronizedBoundedBlockingMapQueue<Long, Result> mapQueue;
 	
-	private static final Logger LOG = Logger.getLogger(Multiplexer.class);
+	private static final Logger LOG = LoggerFactory.getLogger(Multiplexer.class);
 	
 	private static final String
 		LOG_MSG_END_OF_DOCUMENT = "XML document completely send",
@@ -49,7 +50,7 @@ public class Multiplexer implements Runnable {
 			sendData(dataStreamPlain);
 		} catch (InterruptedException | IOException e) {
 			Thread.currentThread().interrupt();
-			LOG.error(e);
+			LOG.error("", e);
 			throw new RuntimeException(e);
 		}
 	}

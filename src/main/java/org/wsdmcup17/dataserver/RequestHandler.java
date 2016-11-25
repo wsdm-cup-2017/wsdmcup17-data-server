@@ -116,6 +116,7 @@ public class RequestHandler implements Runnable {
 			}
 			
 			this.accessToken = accessToken;
+			org.apache.log4j.MDC.put("accessToken", accessToken);
 			
 			File outputFile = getOutputFile(accessToken);
 			handleRequest(resultStream, dataStreamPlain, outputFile);

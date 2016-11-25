@@ -4,7 +4,8 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.concurrent.BlockingQueue;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.wsdmcup17.dataserver.util.AsyncInputStream;
 import org.wsdmcup17.dataserver.util.BinaryItem;
 import org.wsdmcup17.dataserver.util.QueueProcessor;
@@ -20,7 +21,7 @@ public class RevisionProvider implements Runnable {
 			"%s: Revision Decompressor";
 	private static final int BUFFER_SIZE = 512 * 1024 * 1024;
 
-	private static final Logger LOG = Logger.getLogger(RevisionProvider.class);
+	private static final Logger LOG = LoggerFactory.getLogger(RevisionProvider.class);
 	
 	private ThreadGroup threadGroup;
 	private BlockingQueue<BinaryItem> queue;

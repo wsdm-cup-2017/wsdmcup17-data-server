@@ -2,14 +2,16 @@ package org.wsdmcup17.dataserver.util;
 
 import java.util.concurrent.BlockingQueue;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * Puts binary items in a queue.
  */
 public class QueueProcessor implements ItemProcessor {
 	
-	private static final Logger LOG = Logger.getLogger(QueueProcessor.class);
+	private static final Logger LOG = LoggerFactory.getLogger(QueueProcessor.class);
 	
 	private static final String
 		LOG_MSG_THREAD_INTERRUPTED = "Thread interrupted";

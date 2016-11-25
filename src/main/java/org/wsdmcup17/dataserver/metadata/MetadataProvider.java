@@ -5,7 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.BlockingQueue;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.wsdmcup17.dataserver.util.BinaryItem;
 import org.wsdmcup17.dataserver.util.FilterProcessor;
 import org.wsdmcup17.dataserver.util.ItemProcessor;
@@ -19,7 +20,7 @@ import org.wsdmcup17.dataserver.util.SevenZInputStream;
 public class MetadataProvider implements Runnable {
 	
 	private static final Logger
-		LOG = Logger.getLogger(MetadataProvider.class);
+		LOG = LoggerFactory.getLogger(MetadataProvider.class);
 
 	private BlockingQueue<BinaryItem> queue;
 	private File file;
