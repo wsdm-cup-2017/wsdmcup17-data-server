@@ -19,6 +19,7 @@ import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.wsdmcup17.dataserver.metadata.MetadataProvider;
 import org.wsdmcup17.dataserver.result.Result;
 import org.wsdmcup17.dataserver.result.ResultParser;
@@ -116,7 +117,7 @@ public class RequestHandler implements Runnable {
 			}
 			
 			this.accessToken = accessToken;
-			org.apache.log4j.MDC.put("accessToken", accessToken);
+			MDC.put("accessToken", accessToken);
 			
 			File outputFile = getOutputFile(accessToken);
 			handleRequest(resultStream, dataStreamPlain, outputFile);

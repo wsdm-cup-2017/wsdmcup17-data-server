@@ -3,7 +3,7 @@ package org.wsdmcup17.dataserver;
 import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Enumeration;
+import java.nio.charset.Charset;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -12,12 +12,15 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.log4j.Appender;
-import org.apache.log4j.AsyncAppender;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.PatternLayout;
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.AsyncAppender;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.ConsoleAppender;
+import ch.qos.logback.core.FileAppender;
 
 public class Main {
 	
@@ -41,13 +44,15 @@ public class Main {
 		OPT_TIRA_DATASET_NAME = "d",
 		OPT_TIRA_DATASET_NAME_LONG = "datasetname",
 		OPT_TIRA_DATASET_NAME_DESC = "TIRA dataset name",
-		LOG_PATTERN = "[%d{yyyy-MM-dd HH:mm:ss}] [%-5p] [%t] [%c{1}] %m%n",
+		LOG_PATTERN = "[%d{yyyy-MM-dd HH:mm:ss}] [%-5p] [%t] [%c{0}] %m%n",
 		UTF_8 = "UTF-8",
 		EXT_LOG = ".log";
+	
+	private static LoggerContext logContext;
 
 	public static void main(String[] args) throws UnknownHostException {
 		CommandLine cmd = parseArgs(args);
-		Configuration config = 	new Configuration(
+		Configuration config = new Configuration(
 			cmd.getOptionValue(OPT_REVISION_FILE),
 			cmd.getOptionValue(OPT_METADATA_FILE),
 			cmd.getOptionValue(OPT_OUTPUT_PATH),
@@ -112,42 +117,56 @@ public class Main {
 	}
 	
 	public static void initLogger(File file){
-		org.apache.log4j.Logger logger =
-				org.apache.log4j.Logger.getRootLogger();
+		logContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 		
-		ConsoleAppender consoleAppender = new ConsoleAppender();
-		consoleAppender.setEncoding(UTF_8);
-		consoleAppender.setLayout(new PatternLayout(LOG_PATTERN));
-		consoleAppender.setThreshold(Level.ALL);
-		consoleAppender.activateOptions();		
+		PatternLayoutEncoder encoder;
+		encoder = new PatternLayoutEncoder();
+		encoder.setContext(logContext);
+		encoder.setCharset(Charset.forName(UTF_8));
+		encoder.setPattern(LOG_PATTERN);
+		encoder.start();
+		
+		ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<ILoggingEvent>();
+		consoleAppender.setContext(logContext);
+		consoleAppender.setName("console");
+		consoleAppender.setEncoder(encoder);
+		consoleAppender.start();
+	
 		AsyncAppender asyncConsoleAppender = new AsyncAppender();
+		asyncConsoleAppender.setContext(logContext);
 		asyncConsoleAppender.addAppender(consoleAppender);
-		asyncConsoleAppender.setBufferSize(1024);
-		asyncConsoleAppender.activateOptions();
-		logger.addAppender(asyncConsoleAppender);
+		asyncConsoleAppender.setQueueSize(1024);
+		asyncConsoleAppender.setDiscardingThreshold(0);
+		asyncConsoleAppender.start();
+
+		encoder = new PatternLayoutEncoder();
+		encoder.setContext(logContext);
+		encoder.setCharset(Charset.forName(UTF_8));
+		encoder.setPattern(LOG_PATTERN);
+		encoder.start();
 		
-		FileAppender fileAppender = new FileAppender();
-		fileAppender.setEncoding(UTF_8);
+		FileAppender<ILoggingEvent> fileAppender = new FileAppender<ILoggingEvent>();
+		fileAppender.setContext(logContext);
+		fileAppender.setEncoder(encoder);
 		fileAppender.setFile(file.getAbsolutePath());
-		fileAppender.setLayout(new PatternLayout(LOG_PATTERN));
-		fileAppender.setThreshold(Level.ALL);
 		fileAppender.setAppend(false);
-		fileAppender.activateOptions();		
+		fileAppender.start();
+		
 		AsyncAppender asyncFileAppender = new AsyncAppender();
+		asyncFileAppender.setContext(logContext);
 		asyncFileAppender.addAppender(fileAppender);
-		asyncFileAppender.setBufferSize(1024);
-		asyncFileAppender.activateOptions();
+		asyncFileAppender.setQueueSize(1024);
+		asyncFileAppender.setDiscardingThreshold(0);
+		asyncFileAppender.start();
+		
+		Logger logger = logContext.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+		logger.detachAndStopAllAppenders();
+		logger.addAppender(asyncConsoleAppender);
 		logger.addAppender(asyncFileAppender);
 	}
 	
 	private static void closeLogger() {
-		org.apache.log4j.LogManager.shutdown();	
-		Enumeration<?> e =
-				org.apache.log4j.Logger.getRootLogger().getAllAppenders();
-		while (e.hasMoreElements()) {
-			Appender appender = (Appender)e.nextElement();
-			appender.close();
-		}
+		logContext.stop();
 	}
 	
 	private static File getLogFile(Configuration config)
