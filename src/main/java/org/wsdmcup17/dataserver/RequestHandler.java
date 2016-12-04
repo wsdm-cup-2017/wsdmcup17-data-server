@@ -1,6 +1,7 @@
 package org.wsdmcup17.dataserver;
 
 import java.io.File;
+
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -30,10 +31,15 @@ import org.wsdmcup17.dataserver.util.BinaryItem;
 import org.wsdmcup17.dataserver.util.NonBlockingLineBufferedInputStream;
 import org.wsdmcup17.dataserver.util.SynchronizedBoundedBlockingMapQueue;
 
+import static ch.qos.logback.classic.ClassicConstants.FINALIZE_SESSION_MARKER;
+
 public class RequestHandler implements Runnable {
 
 	private static final Logger
 		LOG = LoggerFactory.getLogger(RequestHandler.class);
+	
+	public static final String 
+		MDC_ACCESS_TOKEN_KEY = "accessToken";
 	
 	private static final String
 		UUID_PATTERN = "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
@@ -117,10 +123,18 @@ public class RequestHandler implements Runnable {
 			}
 			
 			this.accessToken = accessToken;
-			MDC.put("accessToken", accessToken);
+			MDC.put(MDC_ACCESS_TOKEN_KEY, accessToken);
+			LOG.info("Handling request for token " + accessToken + "...");
 			
-			File outputFile = getOutputFile(accessToken);
-			handleRequest(resultStream, dataStreamPlain, outputFile);
+			try {
+				File outputFile = getOutputFile(accessToken);
+				handleRequest(resultStream, dataStreamPlain, outputFile);
+			} finally {
+				LOG.info("Handling request for token "
+						+ accessToken + "...done.");
+				LOG.info(FINALIZE_SESSION_MARKER, "Finalize logger...");
+				MDC.remove(MDC_ACCESS_TOKEN_KEY);
+			}
 		}
 	}
 	
@@ -207,7 +221,7 @@ public class RequestHandler implements Runnable {
 
 	private Thread createRevisionProviderThread(ThreadGroup threadGroup) {
 		RevisionProvider revisionProvider =
-				new RevisionProvider(
+				new RevisionProvider(MDC.getCopyOfContextMap(),
 						threadGroup, revisionQueue, config.getRevisionFile());
 		Thread revisionThread =
 				new Thread(threadGroup, revisionProvider,
@@ -226,7 +240,8 @@ public class RequestHandler implements Runnable {
 		long revisionId = firstRevision.getRevisionId();
 		File metadataFile = config.getMetadataFile();
 		MetadataProvider metadataProvider =
-				new MetadataProvider(metadataQueue, metadataFile, revisionId);
+				new MetadataProvider(MDC.getCopyOfContextMap(),
+						metadataQueue, metadataFile, revisionId);
 		Thread metaThread =
 				new Thread(threadGroup, metadataProvider,
 					String.format(THREAD_NAME_METADATA_PROVIDER, accessToken));
@@ -241,7 +256,8 @@ public class RequestHandler implements Runnable {
 		ResultParser parser = new ResultParser(resultStream);
 		ResultPrinter printer = new ResultPrinter(csvPrinter);
 		ResultRecorder resultReceiver =
-				new ResultRecorder(mapQueue, parser, printer);
+				new ResultRecorder(MDC.getCopyOfContextMap(),
+						mapQueue, parser, printer);
 		Thread  resultReceiverThread =
 				new Thread(threadGroup, resultReceiver,
 						String.format(THREAD_NAME_RESULT_RECORDER, accessToken));
@@ -251,7 +267,7 @@ public class RequestHandler implements Runnable {
 	
 	private Thread createMultiplexerThread(
 			ThreadGroup threadGroup, OutputStream dataStreamPlain) {
-		Multiplexer multiplexer = new Multiplexer(
+		Multiplexer multiplexer = new Multiplexer(MDC.getCopyOfContextMap(),
 				dataStreamPlain, revisionQueue, metadataQueue, mapQueue);
 		Thread multiplexerThread = 
 				new Thread(threadGroup, multiplexer,

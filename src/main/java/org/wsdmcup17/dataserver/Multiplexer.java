@@ -3,16 +3,20 @@ package org.wsdmcup17.dataserver;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.wsdmcup17.dataserver.result.Result;
 import org.wsdmcup17.dataserver.util.BinaryItem;
 import org.wsdmcup17.dataserver.util.SynchronizedBoundedBlockingMapQueue;
 
 public class Multiplexer implements Runnable {
+	
+	private Map<String,String> contextMap;
 	
 	private OutputStream dataStreamPlain;
 	
@@ -34,10 +38,12 @@ public class Multiplexer implements Runnable {
 	private static final int
 		DELAY = 10000;
 
-	public Multiplexer(OutputStream dataStreamPlain,
+	public Multiplexer(Map<String,String> contextMap,
+			OutputStream dataStreamPlain,
 			BlockingQueue<BinaryItem> revisionQueue,
 			BlockingQueue<BinaryItem> metaDataQueue,
 			SynchronizedBoundedBlockingMapQueue<Long, Result> mapQueue) {
+		this.contextMap = contextMap;
 		this.dataStreamPlain = dataStreamPlain;
 		this.revisionQueue = revisionQueue;
 		this.metadataQueue = metaDataQueue;
@@ -46,6 +52,7 @@ public class Multiplexer implements Runnable {
 
 	@Override
 	public void run() {
+		MDC.setContextMap(contextMap);
 		try {
 			sendData(dataStreamPlain);
 		} catch (InterruptedException | IOException e) {

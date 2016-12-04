@@ -18,9 +18,17 @@ import ch.qos.logback.classic.AsyncAppender;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.sift.MDCBasedDiscriminator;
+import ch.qos.logback.classic.sift.SiftingAppender;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.ConsoleAppender;
+import ch.qos.logback.core.Context;
 import ch.qos.logback.core.FileAppender;
+import ch.qos.logback.core.encoder.Encoder;
+import ch.qos.logback.core.joran.spi.JoranException;
+import ch.qos.logback.core.sift.AppenderFactory;
+import ch.qos.logback.core.util.Duration;
 
 public class Main {
 	
@@ -60,7 +68,7 @@ public class Main {
 			cmd.getOptionValue(OPT_TIRA_PATH),
 			cmd.getOptionValue(OPT_TIRA_DATASET_NAME)
 		);
-		initLogger(getLogFile(config));
+		initLogger(config);
 		try {
 			Server server = new Server(config);
 			server.start();
@@ -116,66 +124,143 @@ public class Main {
 		return cmd;
 	}
 	
-	public static void initLogger(File file){
+	public static void initLogger(Configuration config){
 		logContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 		
-		PatternLayoutEncoder encoder;
-		encoder = new PatternLayoutEncoder();
-		encoder.setContext(logContext);
-		encoder.setCharset(Charset.forName(UTF_8));
-		encoder.setPattern(LOG_PATTERN);
-		encoder.start();
+		Encoder<ILoggingEvent> encoder = buildEncoder();
 		
-		ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<ILoggingEvent>();
+		ConsoleAppender<ILoggingEvent> consoleAppender =
+				new ConsoleAppender<ILoggingEvent>();
 		consoleAppender.setContext(logContext);
 		consoleAppender.setName("console");
 		consoleAppender.setEncoder(encoder);
 		consoleAppender.start();
 	
-		AsyncAppender asyncConsoleAppender = new AsyncAppender();
-		asyncConsoleAppender.setContext(logContext);
-		asyncConsoleAppender.addAppender(consoleAppender);
-		asyncConsoleAppender.setQueueSize(1024);
-		asyncConsoleAppender.setDiscardingThreshold(0);
-		asyncConsoleAppender.start();
+		AsyncAppender asyncConsoleAppender =
+				buildAsyncAppender(consoleAppender);
 
-		encoder = new PatternLayoutEncoder();
+		encoder = buildEncoder();
+		
+		FileAppender<ILoggingEvent> fileAppender =
+				new FileAppender<ILoggingEvent>();
+		fileAppender.setContext(logContext);
+		fileAppender.setEncoder(encoder);
+		fileAppender.setFile(getLogFile(config).toString());
+		fileAppender.setAppend(false);
+		fileAppender.start();
+		
+		AsyncAppender asyncFileAppender = buildAsyncAppender(fileAppender);
+		
+		SiftingAppender siftingAppender = buildSiftingAppender(config);
+		
+		AsyncAppender asyncSiftingAppender =
+				buildAsyncAppender(siftingAppender);
+		
+		Logger logger =
+				logContext.getLogger(
+						ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+		logger.detachAndStopAllAppenders();
+		logger.addAppender(asyncConsoleAppender);
+		logger.addAppender(asyncFileAppender);
+		logger.addAppender(asyncSiftingAppender);
+	}
+	
+	private static Encoder<ILoggingEvent> buildEncoder() {
+		PatternLayoutEncoder encoder = new PatternLayoutEncoder();
 		encoder.setContext(logContext);
 		encoder.setCharset(Charset.forName(UTF_8));
 		encoder.setPattern(LOG_PATTERN);
 		encoder.start();
 		
-		FileAppender<ILoggingEvent> fileAppender = new FileAppender<ILoggingEvent>();
-		fileAppender.setContext(logContext);
-		fileAppender.setEncoder(encoder);
-		fileAppender.setFile(file.getAbsolutePath());
-		fileAppender.setAppend(false);
-		fileAppender.start();
+		return encoder;
+	}
+	
+	private static AsyncAppender buildAsyncAppender(
+			Appender<ILoggingEvent> appender) {
+		AsyncAppender asyncAppender = new AsyncAppender();
+		asyncAppender.setContext(logContext);
+		asyncAppender.addAppender(appender);
+		asyncAppender.setQueueSize(1024);
+		asyncAppender.setDiscardingThreshold(0);
+		asyncAppender.start();
 		
-		AsyncAppender asyncFileAppender = new AsyncAppender();
-		asyncFileAppender.setContext(logContext);
-		asyncFileAppender.addAppender(fileAppender);
-		asyncFileAppender.setQueueSize(1024);
-		asyncFileAppender.setDiscardingThreshold(0);
-		asyncFileAppender.start();
+		return asyncAppender;
 		
-		Logger logger = logContext.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
-		logger.detachAndStopAllAppenders();
-		logger.addAppender(asyncConsoleAppender);
-		logger.addAppender(asyncFileAppender);
+	}
+	
+	private static SiftingAppender buildSiftingAppender(Configuration config) {
+		SiftingAppender siftingAppender = new SiftingAppender();
+		siftingAppender.setName("SIFT");
+		siftingAppender.setContext(logContext);
+		
+		// timeout must be set to 0 (see http://jira.qos.ch/browse/LOGBACK-1066,
+		// post from 26/Oct/15 8:57 AM)
+		siftingAppender.setTimeout(Duration.buildByMilliseconds(0));
+		
+		MDCBasedDiscriminator discriminator = new MDCBasedDiscriminator();
+		discriminator.setKey(RequestHandler.MDC_ACCESS_TOKEN_KEY);
+		discriminator.setDefaultValue("Server");
+		discriminator.start();
+
+		siftingAppender.setDiscriminator(discriminator);
+
+		siftingAppender.setAppenderFactory(
+				new AppenderFactory<ILoggingEvent>() {
+			@Override
+			public Appender<ILoggingEvent> buildAppender(
+					Context context, String discriminatingValue)
+							throws JoranException {
+				Encoder<ILoggingEvent> encoder = buildEncoder();
+				
+				FileAppender<ILoggingEvent> fileAppender =
+						new FileAppender<ILoggingEvent>();
+				fileAppender.setContext(logContext);
+				fileAppender.setEncoder(encoder);
+				fileAppender.setFile(
+						getDiscriminatingLogFile(config, discriminatingValue)
+						.toString());
+				fileAppender.setAppend(false);
+				fileAppender.start();
+				
+				return fileAppender;
+			}
+		});
+
+		siftingAppender.start();
+		
+		return siftingAppender;
 	}
 	
 	private static void closeLogger() {
 		logContext.stop();
 	}
 	
-	private static File getLogFile(Configuration config)
-	throws UnknownHostException {
-		int port = config.getPort();
-		String hostname = InetAddress.getLocalHost().getHostName();
-		File outputPath = config.getOutputPath();
-		String filename = hostname + "_" + port + EXT_LOG;
-		File logFile = new File(outputPath, filename);
-		return logFile;
+	private static File getLogFile(Configuration config) {
+		return getDiscriminatingLogFile(config, null);
+	}
+	
+	private static File getDiscriminatingLogFile(
+			Configuration config, String discriminatingValue) {
+		try {
+			int port = config.getPort();
+			String host;
+
+			host = InetAddress.getLocalHost().getHostName();
+
+			String filename = host + "_" + port;
+			
+			if (discriminatingValue != null) {
+				filename += "_" + discriminatingValue + EXT_LOG;
+			} else {
+				filename += EXT_LOG;
+			}
+			
+			File outputPath = config.getOutputPath();
+			File logFile = new File(outputPath, filename).getAbsoluteFile();
+			return logFile;
+			
+		} catch (UnknownHostException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

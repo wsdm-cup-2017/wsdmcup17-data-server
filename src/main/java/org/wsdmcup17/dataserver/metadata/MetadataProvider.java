@@ -3,10 +3,12 @@ package org.wsdmcup17.dataserver.metadata;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.wsdmcup17.dataserver.util.BinaryItem;
 import org.wsdmcup17.dataserver.util.FilterProcessor;
 import org.wsdmcup17.dataserver.util.ItemProcessor;
@@ -21,14 +23,17 @@ public class MetadataProvider implements Runnable {
 	
 	private static final Logger
 		LOG = LoggerFactory.getLogger(MetadataProvider.class);
+	
+	Map<String,String> contextMap;
 
 	private BlockingQueue<BinaryItem> queue;
 	private File file;
 	private long firstRevision;
 	private MetadataParser parser;
 	
-	public MetadataProvider(BlockingQueue<BinaryItem> queue, File file,
-			long firstRevision) {
+	public MetadataProvider(Map<String,String> contextMap,
+			BlockingQueue<BinaryItem> queue, File file, long firstRevision) {
+		this.contextMap = contextMap;
 		this.queue = queue;
 		this.file = file;
 		this.firstRevision = firstRevision;
@@ -36,6 +41,7 @@ public class MetadataProvider implements Runnable {
 
 	@Override
 	public void run() {
+		MDC.setContextMap(contextMap);
 		ItemProcessor nextProcessor = new QueueProcessor(queue);
 		nextProcessor = new FilterProcessor(nextProcessor, firstRevision);
 		try (InputStream inputStream = new SevenZInputStream(file)) {

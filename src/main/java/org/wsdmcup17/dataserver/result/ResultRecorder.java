@@ -3,9 +3,11 @@ package org.wsdmcup17.dataserver.result;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.wsdmcup17.dataserver.util.SynchronizedBoundedBlockingMapQueue;
 
 /**
@@ -26,21 +28,25 @@ public class ResultRecorder implements Runnable {
 	private static final int
 		DELAY = 10000;
 	
+	private Map<String,String> contextMap;
 	private ResultParser resultParser;
 	private ResultPrinter resultPrinter;
 	private SynchronizedBoundedBlockingMapQueue<Long, Result> mapQueue;
 	private long lastMillis = 0;
 	
-	public ResultRecorder(
+	public ResultRecorder(Map<String,String> contextMap,
 		SynchronizedBoundedBlockingMapQueue<Long, Result> mapQueue,
 		ResultParser resultParser, ResultPrinter resultPrinter
 	) {
+		this.contextMap = contextMap;
 		this.mapQueue = mapQueue;
 		this.resultParser = resultParser;
 		this.resultPrinter = resultPrinter;
 	}
 	
 	public void run() {
+		MDC.setContextMap(contextMap);
+		
 		try {
 			while (!Thread.currentThread().isInterrupted()) {
 				Result parsedResult = resultParser.parseResult();
@@ -111,4 +117,3 @@ public class ResultRecorder implements Runnable {
 		}
 	}
 }
-
