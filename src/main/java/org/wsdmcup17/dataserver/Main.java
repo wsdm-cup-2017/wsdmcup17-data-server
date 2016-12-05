@@ -56,6 +56,9 @@ public class Main {
 		UTF_8 = "UTF-8",
 		EXT_LOG = ".log";
 	
+	private static final Duration STALE_APPENDER_TIMEOUT =
+			Duration.buildByDays(14);
+	
 	private static LoggerContext logContext;
 
 	public static void main(String[] args) throws UnknownHostException {
@@ -182,6 +185,7 @@ public class Main {
 		asyncAppender.addAppender(appender);
 		asyncAppender.setQueueSize(1024);
 		asyncAppender.setDiscardingThreshold(0);
+		asyncAppender.setMaxFlushTime(0);
 		asyncAppender.start();
 		
 		return asyncAppender;
@@ -193,9 +197,10 @@ public class Main {
 		siftingAppender.setName("SIFT");
 		siftingAppender.setContext(logContext);
 		
-		// timeout must be set to 0 (see http://jira.qos.ch/browse/LOGBACK-1066,
-		// post from 26/Oct/15 8:57 AM)
-		siftingAppender.setTimeout(Duration.buildByMilliseconds(0));
+		// Setting timeout to either 0 or unbounded, causes lost log messages.
+		// Hence, we set it to a reasonable value.
+		siftingAppender.setTimeout(STALE_APPENDER_TIMEOUT);
+
 		
 		MDCBasedDiscriminator discriminator = new MDCBasedDiscriminator();
 		discriminator.setKey(RequestHandler.MDC_ACCESS_TOKEN_KEY);
