@@ -39,13 +39,15 @@ public class RequestHandler implements Runnable {
 		LOG = LoggerFactory.getLogger(RequestHandler.class);
 	
 	public static final String 
-		MDC_ACCESS_TOKEN_KEY = "accessToken";
+		MDC_ACCESS_TOKEN_KEY = "accessToken",
+		MDC_LOG_FILE_KEY = "logFile";
 	
 	private static final String
 		UUID_PATTERN = "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
 		TIRA_VM_STATE_PATH = "state/virtual-machines",
 		TIRA_CLIENT_IP_PREFIX = "141.54",
-		TIRA_RUN_DIR_PATTERN = "data/runs/%s/%s/%s/run.prototext",
+		TIRA_RUN_DIR_PATTERN = "data/runs/%s/%s/%s/",
+		TIRA_PROTOTEXT_NAME = "run.prototext",
 		LOG_MSG_CONNECTED_TO = "Connected to %s.",
 		ERROR_MSG_INVALID_TOKEN = "Invalid access token: %s",
 		ERROR_MSG_INVALID_CLIENT = "Invalid client IP: %s",
@@ -124,6 +126,11 @@ public class RequestHandler implements Runnable {
 			
 			this.accessToken = accessToken;
 			MDC.put(MDC_ACCESS_TOKEN_KEY, accessToken);
+			MDC.put(MDC_LOG_FILE_KEY, 
+					Main.getLogFileForToken(
+							getRunDir(accessToken),
+							config.getPort(),
+							accessToken).getPath());
 			LOG.info("Handling request for token " + accessToken + "...");
 			
 			try {
@@ -162,7 +169,11 @@ public class RequestHandler implements Runnable {
 	}
 
 	private boolean isTiraRunInProgress(String accessToken) throws IOException {
-		if (!config.isInProductionMode()) return true;
+		return getRunDir(accessToken) != null;
+	}
+	
+	private File getRunDir(String accessToken) throws IOException {
+		if (!config.isInProductionMode()) return config.getOutputPath();
 		File tiraPath = config.getTiraPath();
 		File vmStates = new File(tiraPath, TIRA_VM_STATE_PATH);
 		File[] stateFiles = vmStates.listFiles(new FilenameFilter() {
@@ -178,15 +189,16 @@ public class RequestHandler implements Runnable {
 			List<String> lines = FileUtils.readLines(stateFile, UTF_8);
 			if (lines.isEmpty()) continue;
 			String runId = lines.get(0).split("=")[1].trim();
-			File runPrototext = new File(tiraPath, String.format(
+			File runDir = new File(tiraPath, String.format(
 					TIRA_RUN_DIR_PATTERN, datasetName, username, runId));
+			File runPrototext = new File(runDir, TIRA_PROTOTEXT_NAME);
 			if (!runPrototext.exists()) continue;
 			String contents = FileUtils.readFileToString(runPrototext, UTF_8);
 			if (contents.contains(accessToken)) {
-				return true;
+				return runDir;
 			}
 		}
-		return false;
+		return null;
 	}
 
 	private void handleRequest(
@@ -206,7 +218,7 @@ public class RequestHandler implements Runnable {
 			Thread metadataThread = createMetadataProviderThread(threadGroup);
 			Thread resultRecorderThread =
 					createResultRecorderThread(
-							threadGroup, resultStream, csvPrinter);			
+							threadGroup, resultStream, csvPrinter);
 			Thread multiplexerThread = 
 					createMultiplexerThread(threadGroup, dataStreamPlain);
 			

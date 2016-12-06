@@ -203,8 +203,13 @@ public class Main {
 
 		
 		MDCBasedDiscriminator discriminator = new MDCBasedDiscriminator();
-		discriminator.setKey(RequestHandler.MDC_ACCESS_TOKEN_KEY);
-		discriminator.setDefaultValue("Server");
+		discriminator.setKey(RequestHandler.MDC_LOG_FILE_KEY);
+		discriminator.setDefaultValue(
+				getLogFileForToken(
+						config.getOutputPath(),
+						config.getPort(),
+						"Server")
+				.getAbsolutePath());
 		discriminator.start();
 
 		siftingAppender.setDiscriminator(discriminator);
@@ -221,9 +226,7 @@ public class Main {
 						new FileAppender<ILoggingEvent>();
 				fileAppender.setContext(logContext);
 				fileAppender.setEncoder(encoder);
-				fileAppender.setFile(
-						getDiscriminatingLogFile(config, discriminatingValue)
-						.toString());
+				fileAppender.setFile(discriminatingValue);
 				fileAppender.setAppend(false);
 				fileAppender.start();
 				
@@ -241,28 +244,31 @@ public class Main {
 	}
 	
 	private static File getLogFile(Configuration config) {
-		return getDiscriminatingLogFile(config, null);
+		return getLogFileForToken(
+				config.getOutputPath(), config.getPort(), null);
 	}
 	
-	private static File getDiscriminatingLogFile(
-			Configuration config, String discriminatingValue) {
+	public static File getLogFileForToken(
+			File dir, int port, String accessToken) {
+			String logFileName = getLogFileName(port, accessToken);
+			File logFile = new File(dir, logFileName).getAbsoluteFile();
+			return logFile;
+	}
+	
+	private static String getLogFileName(int port, String accessToken) {
 		try {
-			int port = config.getPort();
 			String host;
 
 			host = InetAddress.getLocalHost().getHostName();
 
 			String filename = host + "_" + port;
-			
-			if (discriminatingValue != null) {
-				filename += "_" + discriminatingValue + EXT_LOG;
-			} else {
+			if (accessToken == null) {
 				filename += EXT_LOG;
+			} else {
+				filename += "_" + accessToken + EXT_LOG;
 			}
 			
-			File outputPath = config.getOutputPath();
-			File logFile = new File(outputPath, filename).getAbsoluteFile();
-			return logFile;
+			return filename;
 			
 		} catch (UnknownHostException e) {
 			throw new RuntimeException(e);
