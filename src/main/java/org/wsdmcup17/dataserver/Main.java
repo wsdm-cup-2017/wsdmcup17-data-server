@@ -193,7 +193,7 @@ public class Main {
 	}
 	
 	private static SiftingAppender buildSiftingAppender(Configuration config) {
-		SiftingAppender siftingAppender = new SiftingAppender();
+		SiftingAppender siftingAppender = new ClosingSiftingAppender();
 		siftingAppender.setName("SIFT");
 		siftingAppender.setContext(logContext);
 		
@@ -272,6 +272,17 @@ public class Main {
 			
 		} catch (UnknownHostException e) {
 			throw new RuntimeException(e);
+		}
+	}
+}
+
+// Workaround for bug in Logback (cf. http://jira.qos.ch/browse/LOGBACK-1066)
+class ClosingSiftingAppender extends SiftingAppender {
+	@Override
+	protected void append(ILoggingEvent event) {
+		super.append(event);
+		if (eventMarksEndOfLife(event)) {
+			getAppenderTracker().removeStaleComponents(Long.MAX_VALUE);
 		}
 	}
 }
