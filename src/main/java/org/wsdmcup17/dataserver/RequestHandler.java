@@ -100,7 +100,27 @@ public class RequestHandler implements Runnable {
 		}
 		finally {
 			try {
+				LOG.debug("Closing socket and freeing memory...");
 				clientSocket.close();
+				
+				revisionQueue = null;
+				metadataQueue = null;
+				mapQueue = null;
+				
+				// Several calls are necessary to free heap space
+				System.gc();
+				System.gc();
+				System.gc();
+				
+				for (int i=0; i<6;i++) {
+					try {
+						Thread.sleep(10*1000);
+					} catch (InterruptedException e) {
+						LOG.error("", e);
+					}
+					System.gc();
+				}
+
 			}
 			catch (IOException e) {
 				LOG.error("", e);
